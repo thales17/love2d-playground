@@ -1,15 +1,16 @@
+fpsGraph = require "../lib/FPSGraph/FPSGraph"
 function love.load()
     width = 800
-    half_width = width / 2
-    height = 300
-    grid_size = 20
+    height = 600
+
     angle_step = math.pi / 64
     fov = math.pi / 4
     grid_cols = 20
     grid_rows = 15
+    grid_size = width / grid_cols
 
     player = {
-        x = half_width / 2,
+        x = width / 2,
         y = height / 2,
         size = 5,
         color = {
@@ -21,7 +22,8 @@ function love.load()
     }
     angle = 0
     rays = {}
-    ray_count = half_width
+    show_map = true
+    ray_count = width
 
     grid_data = {
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -42,6 +44,8 @@ function love.load()
     }
 
     cast_rays()
+
+    graph = fpsGraph.createGraph()
 end
 
 function clamp(n, min, max)
@@ -90,6 +94,12 @@ function handle_input()
         move.turn_right = true
     end
 
+    if love.keyboard.isDown("tab") then
+        show_map = true
+    else
+        show_map = false
+    end
+
     return move
 end
 
@@ -119,7 +129,7 @@ function angle_for_ray(i)
 end
 
 function cast_rays()
-    local cast_step = 0.0001
+    local cast_step = 0.001
     -- TODO: Calculate the dx and dy and only check along horizontal and vertical grid lines
     for i = 1, ray_count do
         local local_step = 0.0
@@ -200,6 +210,8 @@ function love.update(dt)
     if should_move or move.turn_left or move.turn_right then
         cast_rays()
     end
+
+    fpsGraph.updateFPS(graph, dt)
 end
 
 function draw_grid()
@@ -216,13 +228,13 @@ function draw_grid()
     love.graphics.setColor(gray, gray, gray)
 
     local x = grid_size
-    while x <= half_width do
+    while x <= width do
         love.graphics.rectangle("fill", x, 0, 1, height)
         x = x + grid_size
     end
     local y = grid_size
     while y < height do
-        love.graphics.rectangle("fill", 0, y, half_width, 1)
+        love.graphics.rectangle("fill", 0, y, width, 1)
         y = y + grid_size
     end
 end
@@ -248,7 +260,7 @@ end
 
 function draw_horizon()
     love.graphics.setColor(222 / 255, 184 / 255, 135 / 255)
-    love.graphics.rectangle("fill", half_width, height / 2, half_width, height / 2)
+    love.graphics.rectangle("fill", 0, height / 2, width, height / 2)
 end
 
 function draw_viewport()
@@ -294,15 +306,21 @@ function draw_walls()
             b = 0
         end
         love.graphics.setColor(0 / 255, 0 / 255, b / 255)
-        draw_vertical_center_line((i - 1) + half_width, h)
+        draw_vertical_center_line((i - 1), h)
     end
 end
 
 function love.draw()
-    draw_grid()
-    draw_player()
-    draw_rays()
-    draw_viewport()
-    draw_horizon()
-    draw_walls()
+    if show_map then
+        draw_grid()
+        draw_player()
+        draw_rays()
+        draw_viewport()
+    else
+        draw_horizon()
+        draw_walls()
+    end
+
+    love.graphics.setColor(255 / 255, 255 / 255, 0)
+    fpsGraph.drawGraphs({graph})
 end
