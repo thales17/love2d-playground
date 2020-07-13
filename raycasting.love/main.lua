@@ -17,7 +17,7 @@ function love.load()
             g = 0 / 255,
             b = 0 / 255
         },
-        speed = 4
+        speed = 1
     }
     angle = 0
     rays = {}
@@ -56,30 +56,41 @@ function clamp(n, min, max)
 end
 
 function handle_input()
-    local move_dir = {x = 0, y = 0, left = false, right = false}
-    if love.keyboard.isDown("w") then
-        move_dir.y = -1
-    end
+    local move = {
+        move_left = false,
+        move_right = false,
+        move_up = false,
+        move_down = false,
+        turn_left = false,
+        turn_right = false,
+        no_move = true
+    }
 
-    if love.keyboard.isDown("s") then
-        move_dir.y = 1
+    if love.keyboard.isDown("w") then
+        move.no_move = false
+        move.move_up = true
+    elseif love.keyboard.isDown("s") then
+        move.no_move = false
+        move.move_down = true
     end
 
     if love.keyboard.isDown("d") then
-        move_dir.x = 1
-    end
-
-    if love.keyboard.isDown("a") then
-        move_dir.x = -1
+        move.no_move = false
+        move.move_right = true
+    elseif love.keyboard.isDown("a") then
+        move.no_move = false
+        move.move_left = true
     end
 
     if love.keyboard.isDown("h") then
-        move_dir.left = true
+        move.no_move = false
+        move.turn_left = true
     elseif love.keyboard.isDown("l") then
-        move_dir.right = true
+        move.no_move = false
+        move.turn_right = true
     end
 
-    return move_dir
+    return move
 end
 
 function grid_cell_for_point(x, y)
@@ -108,9 +119,8 @@ function angle_for_ray(i)
 end
 
 function cast_rays()
-    print("cast rays")
     local cast_step = 0.0001
-
+    -- TODO: Calculate the dx and dy and only check along horizontal and vertical grid lines
     for i = 1, ray_count do
         local local_step = 0.0
         local max = {x = 0, y = 0}
@@ -128,14 +138,45 @@ function cast_rays()
     end
 end
 
+function move_cell(move)
+    local m_x = 0
+    local m_y = 0
+
+    if move.move_up then
+        local x = player.speed * math.cos(angle)
+        local y = player.speed * math.sin(angle)
+        m_x = m_x + x
+        m_y = m_y + y
+    elseif move.move_down then
+        local x = player.speed * math.cos(angle)
+        local y = player.speed * math.sin(angle)
+        m_x = m_x - x
+        m_y = m_y - y
+    end
+
+    if move.move_left then
+        local x = player.speed * math.cos(angle - math.pi / 2)
+        local y = player.speed * math.sin(angle - math.pi / 2)
+        m_x = m_x + x
+        m_y = m_y + y
+    elseif move.move_right then
+        local x = player.speed * math.cos(angle + math.pi / 2)
+        local y = player.speed * math.sin(angle + math.pi / 2)
+        m_x = m_x + x
+        m_y = m_y + y
+    end
+
+    return {x = player.x + m_x, y = player.y + m_y}
+end
+
 function love.update(dt)
-    local move_dir = handle_input()
-    if move_dir.x == 0 and move_dir.y == 0 and not move_dir.left and not move_dir.right then
+    local move = handle_input()
+    if move.no_move then
         return
     end
 
     local current_cell = grid_cell_for_point(player.x, player.y)
-    local next_point = {x = player.x + move_dir.x, y = player.y + move_dir.y}
+    local next_point = move_cell(move)
     local next_cell = grid_cell_for_point(next_point.x, next_point.y)
     local should_move = true
 
@@ -150,13 +191,13 @@ function love.update(dt)
         player.y = next_point.y
     end
 
-    if move_dir.left then
+    if move.turn_left then
         angle = angle - angle_step
-    elseif move_dir.right then
+    elseif move.turn_right then
         angle = angle + angle_step
     end
 
-    if should_move or move_dir.left or move_dir.right then
+    if should_move or move.turn_left or move.turn_right then
         cast_rays()
     end
 end
