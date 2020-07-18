@@ -8,7 +8,7 @@ function love.load()
     fov = math.pi / 4
     grid_cols = 20
     grid_rows = 15
-    grid_size = width / grid_cols
+    grid_size = math.floor(width / grid_cols)
 
     player = {
         x = width / 2,
@@ -21,7 +21,7 @@ function love.load()
         },
         speed = 1
     }
-    angle = 0
+    angle = 0.01
     rays = {}
     show_map = true
     ray_count = width / col_width
@@ -44,7 +44,8 @@ function love.load()
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
     }
 
-    cast_rays()
+    -- cast_rays()
+    my_cast_rays()
 
     graph = fpsGraph.createGraph()
 end
@@ -148,59 +149,55 @@ function cast_rays()
     end
 end
 
-function alt_cast_rays()
-    for i = 1, ray_count do
+function my_cast_rays()
+    for i = 1, 1 do
         local cell = grid_cell_for_point(player.x, player.y)
         local x = cell.x * grid_size
         local y = cell.y * grid_size
-        local dx = player.x - x
-        local dy = player.y - y
-        local theta = angle_for_ray(i - 1)
-        local tan_theta = math.tan(theta)
-        local tile_step_x = 1
-        if theta > math.pi / 2 and theta < 3 * math.pi / 2 then
-            tile_step_x = -1
-        end
-        local tile_step_y = -1
-        if theta > math.pi and theta < 2 * math.pi then
-            tile_step_y = 1
-        end
-        local x_step = tan_theta
-        local y_step = 1 / tan_theta
-        local x_intercept = x + dx + (-1 * dy / tan_theta)
-        local y_intercept = y + dy + (dx / tan_theta)
+        local dx = math.floor(player.x - x)
+        local dy = math.floor(player.y - y)
+        local theta = angle_for_ray(i)
 
-        local vert_cell = grid_cell_for_point(x_intercept, y)
-        local horz_cell = grid_cell_for_point(x, y_intercept)
+        local tile_step_x = 1 * grid_size
+        local tile_step_y = -1 * grid_size
+        local x_step = math.tan(theta)
+        local y_step = 1 / math.tan(theta)
+        local x_intercept = x + dx + (-1 * dy / math.tan(theta))
+        local y_intercept = y + dy + (dx / math.tan(theta))
+        local hit_horiz = false
         local hit_vert = false
-        local hit_horz = false
-        while not (hit_vert and hit_horz) do
-            if grid_data[vert_cell.y + 1][vert_cell.x + 1] ~= 0 then
-                x = x + tile_step_x
-                y_intercept = y_intercept + y_step
-                vert_cell = grid_cell_for_point(x, y_intercept)
-            else
-                hit_vert = true
-            end
+        -- while not hit_horiz and not hit_vert do
+        --     while y_intercept > y and not hit_vert do
+        --         cell = grid_cell_for_point(x, y_intercept)
+        --         if grid_data[cell.y + 1][cell.x + 1] ~= 0 then
+        --             hit_vert = true
+        --             print("hit vert")
+        --             break
+        --         else
+        --             x = x + tile_step_x
+        --             y_intercept = y_intercept + y_step
+        --         end
+        --     end
 
-            if grid_data[horz_cell.y + 1][horz_cell.x + 1] ~= 0 then
-                y = y + tile_step_y
-                x_intercept = x_intercept + x_step
-                horz_cell = grid_cell_for_point(x_intercept, y)
-            else
-                hit_horz = true
-            end
-        end
+        --     while x_intercept < x and not hit_horiz do
+        --         cell = grid_cell_for_point(x_intercept, y)
+        --         if grid_data[cell.y + 1][cell.x + 1] ~= 0 then
+        --             hit_horiz = true
+        --             print("hit horiz")
+        --             break
+        --         else
+        --             x_intercept = x + x_step
+        --             y = y + tile_step_y
+        --         end
+        --     end
+        -- end
 
-        local vert_distance = grid_distance(player, {x = x_intercept, y = y})
-        local horz_distance = grid_distance(player, {x = x, y = y_intercept})
-
-        if (vert_distance > horz_distance) then
-            rays[i] = x_intercept
-            rays[i] = y
+        local vert_distance = grid_distance(player, {x = x + tile_step_x, y = y_intercept})
+        local horiz_distance = grid_distance(player, {x = x_intercept, y = y + tile_step_y})
+        if vert_distance < horiz_distance then
+            rays[i] = {x = x + tile_step_x, y = y_intercept}
         else
-            rays[i] = x
-            rays[i] = y_intercept
+            rays[i] = {x = x_intercept, y = y + tile_step_y}
         end
     end
 end
@@ -272,7 +269,7 @@ function love.update(dt)
 
     if should_move or move.turn_left or move.turn_right then
         -- cast_rays()
-        alt_cast_rays()
+        my_cast_rays()
     end
 
     fpsGraph.updateFPS(graph, dt)
@@ -318,7 +315,9 @@ function draw_rays()
     local gray = 75 / 255
     love.graphics.setColor(gray, gray, gray)
     for i = 1, ray_count do
-        love.graphics.line(player.x, player.y, rays[i].x, rays[i].y)
+        if rays[i] then
+            love.graphics.line(player.x, player.y, rays[i].x, rays[i].y)
+        end
     end
 end
 
@@ -375,15 +374,15 @@ function draw_walls()
 end
 
 function love.draw()
-    if show_map then
-        draw_grid()
-        draw_player()
-        draw_rays()
-        draw_viewport()
-    else
-        draw_horizon()
-        draw_walls()
-    end
+    -- if show_map then
+    draw_grid()
+    draw_player()
+    draw_rays()
+    --     draw_viewport()
+    -- else
+    --     draw_horizon()
+    --     draw_walls()
+    -- end
 
     love.graphics.setColor(255 / 255, 255 / 255, 0)
     fpsGraph.drawGraphs({graph})
