@@ -1,7 +1,8 @@
 fpsGraph = require "../lib/FPSGraph/FPSGraph"
 function love.load()
-    width = 800
-    height = 600
+    width = 1024
+    height = 768
+    col_width = 1
 
     angle_step = math.pi / 64
     fov = math.pi / 4
@@ -23,7 +24,7 @@ function love.load()
     angle = 0
     rays = {}
     show_map = true
-    ray_count = width
+    ray_count = width / col_width
 
     grid_data = {
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -129,8 +130,7 @@ function angle_for_ray(i)
 end
 
 function cast_rays()
-    local cast_step = 0.001
-    -- TODO: Calculate the dx and dy and only check along horizontal and vertical grid lines
+    local cast_step = 0.0001
     for i = 1, ray_count do
         local local_step = 0.0
         local max = {x = 0, y = 0}
@@ -144,6 +144,63 @@ function cast_rays()
             rays[i].y = player.y + ((max.y - player.y) * local_step)
             local_step = local_step + cast_step
             cell = grid_cell_for_point(rays[i].x, rays[i].y)
+        end
+    end
+end
+
+function alt_cast_rays()
+    for i = 1, ray_count do
+        local cell = grid_cell_for_point(player.x, player.y)
+        local x = cell.x * grid_size
+        local y = cell.y * grid_size
+        local dx = player.x - x
+        local dy = player.y - y
+        local theta = angle_for_ray(i - 1)
+        local tan_theta = math.tan(theta)
+        local tile_step_x = 1
+        if theta > math.pi / 2 and theta < 3 * math.pi / 2 then
+            tile_step_x = -1
+        end
+        local tile_step_y = -1
+        if theta > math.pi and theta < 2 * math.pi then
+            tile_step_y = 1
+        end
+        local x_step = tan_theta
+        local y_step = 1 / tan_theta
+        local x_intercept = x + dx + (-1 * dy / tan_theta)
+        local y_intercept = y + dy + (dx / tan_theta)
+
+        local vert_cell = grid_cell_for_point(x_intercept, y)
+        local horz_cell = grid_cell_for_point(x, y_intercept)
+        local hit_vert = false
+        local hit_horz = false
+        while not (hit_vert and hit_horz) do
+            if grid_data[vert_cell.y + 1][vert_cell.x + 1] ~= 0 then
+                x = x + tile_step_x
+                y_intercept = y_intercept + y_step
+                vert_cell = grid_cell_for_point(x, y_intercept)
+            else
+                hit_vert = true
+            end
+
+            if grid_data[horz_cell.y + 1][horz_cell.x + 1] ~= 0 then
+                y = y + tile_step_y
+                x_intercept = x_intercept + x_step
+                horz_cell = grid_cell_for_point(x_intercept, y)
+            else
+                hit_horz = true
+            end
+        end
+
+        local vert_distance = grid_distance(player, {x = x_intercept, y = y})
+        local horz_distance = grid_distance(player, {x = x, y = y_intercept})
+
+        if (vert_distance > horz_distance) then
+            rays[i] = x_intercept
+            rays[i] = y
+        else
+            rays[i] = x
+            rays[i] = y_intercept
         end
     end
 end
@@ -203,12 +260,19 @@ function love.update(dt)
 
     if move.turn_left then
         angle = angle - angle_step
+        if angle < 0 then
+            angle = angle - 2 * math.pi
+        end
     elseif move.turn_right then
         angle = angle + angle_step
+        if angle > 2 * math.pi then
+            angle = angle - 2 * math.pi
+        end
     end
 
     if should_move or move.turn_left or move.turn_right then
-        cast_rays()
+        -- cast_rays()
+        alt_cast_rays()
     end
 
     fpsGraph.updateFPS(graph, dt)
@@ -284,7 +348,7 @@ end
 
 function draw_vertical_center_line(x, h)
     local h1 = (height - h) / 2
-    love.graphics.rectangle("fill", x, h1, 1, h)
+    love.graphics.rectangle("fill", x * col_width, h1, col_width, h)
 end
 
 function draw_walls()
