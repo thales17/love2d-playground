@@ -228,7 +228,7 @@ function upper_left_cast_vals(theta)
     local tile_step_x = -1 * grid_size
     local tile_step_y = -1 * grid_size
     local x_intercept = x + dx + (-1 * dy / tan_theta)
-    local y_intercept = y - dy + (-1 * dx / tan_theta)
+    local y_intercept = y + dy - (dx / tan_theta)
     return {
         x = x,
         y = y,
@@ -243,7 +243,38 @@ function upper_left_cast_vals(theta)
         x_intercept = x_intercept,
         y_intercept = y_intercept,
         h = {x = x_intercept, y = y},
-        v = {x = x + tile_step_x, y = y_intercept + y_step}
+        v = {x = x, y = y_intercept}
+    }
+end
+
+function bottom_left_cast_vals(theta)
+    local cell = grid_cell_for_point(player.x, player.y)
+    local x = cell.x * grid_size
+    local y = cell.y * grid_size
+    local dx = math.floor(player.x - x)
+    local dy = math.floor(player.y - y)
+    local tan_theta = math.tan(theta)
+    local x_step = -1 * tan_theta
+    local y_step = 1 / tan_theta
+    local tile_step_x = -1 * grid_size
+    local tile_step_y = 1 * grid_size
+    local x_intercept = x + dx + ((grid_size - dy) / tan_theta)
+    local y_intercept = y + dy - (dx / tan_theta)
+    return {
+        x = x,
+        y = y,
+        dx = dx,
+        dy = dy,
+        theta = theta,
+        tan_theta = tan_theta,
+        tile_step_x = tile_step_x,
+        tile_step_y = tile_step_y,
+        x_step = x_step,
+        y_step = y_step,
+        x_intercept = x_intercept,
+        y_intercept = y_intercept,
+        h = {x = x_intercept + x_step, y = y + tile_step_y},
+        v = {x = x, y = y_intercept}
     }
 end
 
@@ -251,7 +282,8 @@ function my_cast_rays()
     for i = 1, 1 do
         -- local cast_vals = upper_right_cast_vals(2 * math.pi - (math.pi / 4))
         -- local cast_vals = bottom_right_cast_vals(2 * math.pi - (7 * math.pi / 4))
-        local cast_vals = upper_left_cast_vals(2 * math.pi - (3 * math.pi / 4))
+        -- local cast_vals = upper_left_cast_vals(2 * math.pi - (3 * math.pi / 4))
+        local cast_vals = bottom_left_cast_vals(2 * math.pi - (5 * math.pi / 4))
 
         debug_info.ray.x = cast_vals.h.x
         debug_info.ray.y = cast_vals.h.y
