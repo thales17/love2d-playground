@@ -154,54 +154,125 @@ function cast_rays()
     end
 end
 
+function upper_right_cast_vals(theta)
+    local cell = grid_cell_for_point(player.x, player.y)
+    local x = cell.x * grid_size
+    local y = cell.y * grid_size
+    local dx = math.floor(player.x - x)
+    local dy = math.floor(player.y - y)
+    local tan_theta = math.tan(theta)
+    local x_step = tan_theta
+    local y_step = -1 / tan_theta
+    local tile_step_x = 1 * grid_size
+    local tile_step_y = -1 * grid_size
+    local x_intercept = x + dx + (-1 * dy / tan_theta)
+    local y_intercept = y + dy + ((grid_size - dx) / tan_theta)
+    return {
+        x = x,
+        y = y,
+        dx = dx,
+        dy = dy,
+        theta = theta,
+        tan_theta = tan_theta,
+        tile_step_x = tile_step_x,
+        tile_step_y = tile_step_y,
+        x_step = x_step,
+        y_step = y_step,
+        x_intercept = x_intercept,
+        y_intercept = y_intercept,
+        h = {x = x_intercept, y = y},
+        v = {x = x + tile_step_x, y = y_intercept + y_step}
+    }
+end
+
+function bottom_right_cast_vals(theta)
+    local cell = grid_cell_for_point(player.x, player.y)
+    local x = cell.x * grid_size
+    local y = cell.y * grid_size
+    local dx = math.floor(player.x - x)
+    local dy = math.floor(player.y - y)
+    local tan_theta = math.tan(theta)
+    local x_step = tan_theta
+    local y_step = 1 / tan_theta
+    local tile_step_x = 1 * grid_size
+    local tile_step_y = 1 * grid_size
+    local x_intercept = x + dx + ((grid_size - dy) / tan_theta)
+    local y_intercept = y + dy + ((grid_size - dx) / tan_theta)
+    return {
+        x = x,
+        y = y,
+        dx = dx,
+        dy = dy,
+        theta = theta,
+        tan_theta = tan_theta,
+        x_step = x_step,
+        y_step = y_step,
+        tile_step_x = tile_step_x,
+        tile_step_y = tile_step_y,
+        x_intercept = x_intercept,
+        y_intercept = y_intercept,
+        h = {x = x_intercept + x_step, y = y + tile_step_y},
+        v = {x = x + tile_step_x, y = y_intercept + y_step}
+    }
+end
+
+function upper_left_cast_vals(theta)
+    local cell = grid_cell_for_point(player.x, player.y)
+    local x = cell.x * grid_size
+    local y = cell.y * grid_size
+    local dx = math.floor(player.x - x)
+    local dy = math.floor(player.y - y)
+    local tan_theta = math.tan(theta)
+    local x_step = tan_theta
+    local y_step = -1 / tan_theta
+    local tile_step_x = -1 * grid_size
+    local tile_step_y = -1 * grid_size
+    local x_intercept = x + dx + (-1 * dy / tan_theta)
+    local y_intercept = y - dy + (-1 * dx / tan_theta)
+    return {
+        x = x,
+        y = y,
+        dx = dx,
+        dy = dy,
+        theta = theta,
+        tan_theta = tan_theta,
+        tile_step_x = tile_step_x,
+        tile_step_y = tile_step_y,
+        x_step = x_step,
+        y_step = y_step,
+        x_intercept = x_intercept,
+        y_intercept = y_intercept,
+        h = {x = x_intercept, y = y},
+        v = {x = x + tile_step_x, y = y_intercept + y_step}
+    }
+end
+
 function my_cast_rays()
     for i = 1, 1 do
-        local cell = grid_cell_for_point(player.x, player.y)
-        local x = cell.x * grid_size
-        local y = cell.y * grid_size
-        local dx = math.floor(player.x - x)
-        local dy = math.floor(player.y - y)
-        -- local theta = angle_for_ray(i)
-        local theta = 2 * math.pi - (math.pi / 4)
+        -- local cast_vals = upper_right_cast_vals(2 * math.pi - (math.pi / 4))
+        -- local cast_vals = bottom_right_cast_vals(2 * math.pi - (7 * math.pi / 4))
+        local cast_vals = upper_left_cast_vals(2 * math.pi - (3 * math.pi / 4))
 
-        local tile_step_x = 1 * grid_size
-        local tile_step_y = -1 * grid_size
-        local tan_theta = math.tan(theta)
-        local x_step = tan_theta
-        local y_step = -1 / tan_theta
-        local x_intercept = x + dx + (-1 * dy / tan_theta)
-        local y_intercept = y - dy - (dx / tan_theta)
-        debug_info.ray.x = x_intercept
-        debug_info.ray.y = y
-        debug_info.ray_angle.x = player.x + math.cos(theta) * 500
-        debug_info.ray_angle.y = player.y + math.sin(theta) * 500
-        debug_info.horizontal_intercepts[i] = {x = x_intercept, y = y}
-        debug_info.vertical_intercepts[i] = {x = x + tile_step_x, y = y_intercept - y_step}
-        -- while not hit_horiz and not hit_vert do
-        --     while y_intercept > y and not hit_vert do
-        --         cell = grid_cell_for_point(x, y_intercept)
-        --         if grid_data[cell.y + 1][cell.x + 1] ~= 0 then
-        --             hit_vert = true
-        --             print("hit vert")
-        --             break
-        --         else
-        --             x = x + tile_step_x
-        --             y_intercept = y_intercept + y_step
-        --         end
-        --     end
-
-        --     while x_intercept < x and not hit_horiz do
-        --         cell = grid_cell_for_point(x_intercept, y)
-        --         if grid_data[cell.y + 1][cell.x + 1] ~= 0 then
-        --             hit_horiz = true
-        --             print("hit horiz")
-        --             break
-        --         else
-        --             x_intercept = x + x_step
-        --             y = y + tile_step_y
-        --         end
-        --     end
-        -- end
+        debug_info.ray.x = cast_vals.h.x
+        debug_info.ray.y = cast_vals.h.y
+        debug_info.ray_angle.x = player.x + math.cos(cast_vals.theta) * 500
+        debug_info.ray_angle.y = player.y + math.sin(cast_vals.theta) * 500
+        debug_info.horizontal_intercepts[i] = {
+            x = cast_vals.h.x,
+            y = cast_vals.h.y
+        }
+        debug_info.horizontal_intercepts[i + 1] = {
+            x = cast_vals.h.x + cast_vals.x_step + cast_vals.tile_step_x,
+            y = cast_vals.h.y + cast_vals.tile_step_y
+        }
+        debug_info.vertical_intercepts[i] = {
+            x = cast_vals.v.x,
+            y = cast_vals.v.y
+        }
+        debug_info.vertical_intercepts[i + 1] = {
+            x = cast_vals.v.x + cast_vals.tile_step_x,
+            y = cast_vals.v.y + cast_vals.y_step + cast_vals.tile_step_y
+        }
     end
 end
 
