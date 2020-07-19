@@ -43,7 +43,12 @@ function love.load()
         {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
     }
-
+    debug_info = {
+        ray = {x = 0, y = 0},
+        ray_angle = {x = 0, y = 0},
+        horizontal_intercepts = {},
+        vertical_intercepts = {}
+    }
     -- cast_rays()
     my_cast_rays()
 
@@ -156,16 +161,22 @@ function my_cast_rays()
         local y = cell.y * grid_size
         local dx = math.floor(player.x - x)
         local dy = math.floor(player.y - y)
-        local theta = angle_for_ray(i)
+        -- local theta = angle_for_ray(i)
+        local theta = 2 * math.pi - (math.pi / 4)
 
         local tile_step_x = 1 * grid_size
         local tile_step_y = -1 * grid_size
-        local x_step = math.tan(theta)
-        local y_step = 1 / math.tan(theta)
-        local x_intercept = x + dx + (-1 * dy / math.tan(theta))
-        local y_intercept = y + dy + (dx / math.tan(theta))
-        local hit_horiz = false
-        local hit_vert = false
+        local tan_theta = math.tan(theta)
+        local x_step = tan_theta
+        local y_step = -1 / tan_theta
+        local x_intercept = x + dx + (-1 * dy / tan_theta)
+        local y_intercept = y - dy - (dx / tan_theta)
+        debug_info.ray.x = x_intercept
+        debug_info.ray.y = y
+        debug_info.ray_angle.x = player.x + math.cos(theta) * 500
+        debug_info.ray_angle.y = player.y + math.sin(theta) * 500
+        debug_info.horizontal_intercepts[i] = {x = x_intercept, y = y}
+        debug_info.vertical_intercepts[i] = {x = x + tile_step_x, y = y_intercept - y_step}
         -- while not hit_horiz and not hit_vert do
         --     while y_intercept > y and not hit_vert do
         --         cell = grid_cell_for_point(x, y_intercept)
@@ -191,14 +202,6 @@ function my_cast_rays()
         --         end
         --     end
         -- end
-
-        local vert_distance = grid_distance(player, {x = x + tile_step_x, y = y_intercept})
-        local horiz_distance = grid_distance(player, {x = x_intercept, y = y + tile_step_y})
-        if vert_distance < horiz_distance then
-            rays[i] = {x = x + tile_step_x, y = y_intercept}
-        else
-            rays[i] = {x = x_intercept, y = y + tile_step_y}
-        end
     end
 end
 
@@ -373,11 +376,41 @@ function draw_walls()
     end
 end
 
+function draw_debug()
+    love.graphics.setColor(255 / 255, 255 / 255, 255 / 255)
+    love.graphics.line(player.x, player.y, debug_info.ray_angle.x, debug_info.ray_angle.y)
+    love.graphics.setColor(255 / 255, 0 / 255, 0 / 255)
+    love.graphics.line(player.x, player.y, debug_info.ray.x, debug_info.ray.y)
+
+    love.graphics.setColor(0 / 255, 255 / 255, 0 / 255)
+    for i = 1, #debug_info.horizontal_intercepts do
+        love.graphics.rectangle(
+            "fill",
+            debug_info.horizontal_intercepts[i].x - 2.5,
+            debug_info.horizontal_intercepts[i].y - 2.5,
+            5,
+            5
+        )
+    end
+
+    love.graphics.setColor(255 / 255, 0 / 255, 255 / 255)
+    for i = 1, #debug_info.vertical_intercepts do
+        love.graphics.rectangle(
+            "fill",
+            debug_info.vertical_intercepts[i].x - 2.5,
+            debug_info.vertical_intercepts[i].y - 2.5,
+            5,
+            5
+        )
+    end
+end
+
 function love.draw()
     -- if show_map then
     draw_grid()
     draw_player()
-    draw_rays()
+    draw_debug()
+    -- draw_rays()
     --     draw_viewport()
     -- else
     --     draw_horizon()
