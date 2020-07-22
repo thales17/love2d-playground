@@ -21,7 +21,8 @@ function love.load()
         },
         speed = 1
     }
-    angle = 0.01
+    -- angle = (2 * math.pi - math.pi / 8)
+    angle = (2 * math.pi - math.pi / 8 - (math.pi * (3 / 2)))
     rays = {}
     show_map = true
     ray_count = width / col_width
@@ -161,12 +162,12 @@ function upper_right_cast_vals(theta)
     local dx = math.floor(player.x - x)
     local dy = math.floor(player.y - y)
     local tan_theta = math.tan(theta)
-    local x_step = tan_theta
-    local y_step = -1 / tan_theta
+    local x_step = (-1 * (grid_size) / tan_theta)
+    local y_step = ((grid_size - dx) * tan_theta)
     local tile_step_x = 1 * grid_size
     local tile_step_y = -1 * grid_size
     local x_intercept = x + dx + (-1 * dy / tan_theta)
-    local y_intercept = y + dy + ((grid_size - dx) / tan_theta)
+    local y_intercept = y + dy + ((grid_size - dx) * tan_theta)
     return {
         x = x,
         y = y,
@@ -181,7 +182,7 @@ function upper_right_cast_vals(theta)
         x_intercept = x_intercept,
         y_intercept = y_intercept,
         h = {x = x_intercept, y = y},
-        v = {x = x + tile_step_x, y = y_intercept + y_step}
+        v = {x = x + tile_step_x, y = y_intercept}
     }
 end
 
@@ -192,12 +193,12 @@ function bottom_right_cast_vals(theta)
     local dx = math.floor(player.x - x)
     local dy = math.floor(player.y - y)
     local tan_theta = math.tan(theta)
-    local x_step = tan_theta
-    local y_step = 1 / tan_theta
+    local x_step = ((grid_size) / tan_theta)
+    local y_step = ((grid_size - dx) * tan_theta)
     local tile_step_x = 1 * grid_size
     local tile_step_y = 1 * grid_size
-    local x_intercept = x + dx + ((grid_size - dy) / tan_theta)
-    local y_intercept = y + dy + ((grid_size - dx) / tan_theta)
+    local x_intercept = x + dx + (dy / tan_theta)
+    local y_intercept = y + dy + ((grid_size - dx) * tan_theta)
     return {
         x = x,
         y = y,
@@ -211,8 +212,8 @@ function bottom_right_cast_vals(theta)
         tile_step_y = tile_step_y,
         x_intercept = x_intercept,
         y_intercept = y_intercept,
-        h = {x = x_intercept + x_step, y = y + tile_step_y},
-        v = {x = x + tile_step_x, y = y_intercept + y_step}
+        h = {x = x_intercept, y = y + tile_step_y},
+        v = {x = x + tile_step_x, y = y_intercept}
     }
 end
 
@@ -223,12 +224,12 @@ function upper_left_cast_vals(theta)
     local dx = math.floor(player.x - x)
     local dy = math.floor(player.y - y)
     local tan_theta = math.tan(theta)
-    local x_step = tan_theta
-    local y_step = -1 / tan_theta
+    local x_step = (-1 * grid_size / tan_theta)
+    local y_step = (-1 * (grid_size + dx) * tan_theta)
     local tile_step_x = -1 * grid_size
     local tile_step_y = -1 * grid_size
     local x_intercept = x + dx + (-1 * dy / tan_theta)
-    local y_intercept = y + dy - (dx / tan_theta)
+    local y_intercept = y + dy + (-1 * dx * tan_theta)
     return {
         x = x,
         y = y,
@@ -254,12 +255,12 @@ function bottom_left_cast_vals(theta)
     local dx = math.floor(player.x - x)
     local dy = math.floor(player.y - y)
     local tan_theta = math.tan(theta)
-    local x_step = -1 * tan_theta
-    local y_step = 1 / tan_theta
+    local x_step = (grid_size) / tan_theta
+    local y_step = (-1 * (grid_size + dx) * tan_theta)
     local tile_step_x = -1 * grid_size
     local tile_step_y = 1 * grid_size
     local x_intercept = x + dx + ((grid_size - dy) / tan_theta)
-    local y_intercept = y + dy - (dx / tan_theta)
+    local y_intercept = y + dy + (-1 * dx * tan_theta)
     return {
         x = x,
         y = y,
@@ -273,9 +274,33 @@ function bottom_left_cast_vals(theta)
         y_step = y_step,
         x_intercept = x_intercept,
         y_intercept = y_intercept,
-        h = {x = x_intercept + x_step, y = y + tile_step_y},
+        h = {x = x_intercept, y = y + tile_step_y},
         v = {x = x, y = y_intercept}
     }
+end
+
+function cast_vals_for_angle(theta)
+    local radius = 10
+    local x = math.cos(theta) * radius
+    local y = math.sin(theta) * radius
+    if x > 0 and y < 0 then
+        print("Upper Right")
+        return upper_right_cast_vals(theta)
+    end
+
+    if x < 0 and y < 0 then
+        print("Upper Left")
+        return upper_left_cast_vals(theta)
+    end
+
+    if x < 0 and y > 0 then
+        print("Bottom Left")
+        return bottom_left_cast_vals(theta)
+    end
+    if x > 0 and y > 0 then
+        print("Bottom Right")
+        return bottom_right_cast_vals(theta)
+    end
 end
 
 function my_cast_rays()
@@ -283,28 +308,37 @@ function my_cast_rays()
         -- local cast_vals = upper_right_cast_vals(2 * math.pi - (math.pi / 4))
         -- local cast_vals = bottom_right_cast_vals(2 * math.pi - (7 * math.pi / 4))
         -- local cast_vals = upper_left_cast_vals(2 * math.pi - (3 * math.pi / 4))
-        local cast_vals = bottom_left_cast_vals(2 * math.pi - (5 * math.pi / 4))
-
-        debug_info.ray.x = cast_vals.h.x
-        debug_info.ray.y = cast_vals.h.y
+        -- local cast_vals = bottom_left_cast_vals(2 * math.pi - (5 * math.pi / 4))
+        -- local cast_vals = cast_vals_for_angle(angle_for_ray(i))
+        local cast_vals = cast_vals_for_angle(angle)
+        if cast_vals == nil then
+            return
+        end
+        print("y_step", cast_vals.y_step)
+        print("tan(theta)", cast_vals.tan_theta)
+        debug_info.ray.x = cast_vals.v.x
+        debug_info.ray.y = cast_vals.v.y
         debug_info.ray_angle.x = player.x + math.cos(cast_vals.theta) * 500
         debug_info.ray_angle.y = player.y + math.sin(cast_vals.theta) * 500
-        debug_info.horizontal_intercepts[i] = {
-            x = cast_vals.h.x,
-            y = cast_vals.h.y
-        }
-        debug_info.horizontal_intercepts[i + 1] = {
-            x = cast_vals.h.x + cast_vals.x_step + cast_vals.tile_step_x,
-            y = cast_vals.h.y + cast_vals.tile_step_y
-        }
-        debug_info.vertical_intercepts[i] = {
-            x = cast_vals.v.x,
-            y = cast_vals.v.y
-        }
-        debug_info.vertical_intercepts[i + 1] = {
-            x = cast_vals.v.x + cast_vals.tile_step_x,
-            y = cast_vals.v.y + cast_vals.y_step + cast_vals.tile_step_y
-        }
+
+        local i_h = {x = cast_vals.h.x, y = cast_vals.h.y}
+        local i_v = {x = cast_vals.v.x, y = cast_vals.v.y}
+
+        for j = 1, 3 do
+            debug_info.horizontal_intercepts[i + (j - 1)] = {
+                x = i_h.x,
+                y = i_h.y
+            }
+            i_h.x = i_h.x + cast_vals.x_step
+            i_h.y = i_h.y + cast_vals.tile_step_y
+
+            debug_info.vertical_intercepts[i + (j - 1)] = {
+                x = i_v.x,
+                y = i_v.y
+            }
+            i_v.x = i_v.x + cast_vals.tile_step_x
+            i_v.y = i_v.y + cast_vals.y_step
+        end
     end
 end
 
@@ -340,6 +374,9 @@ function move_cell(move)
 end
 
 function love.update(dt)
+    angle = angle - (math.pi / 2400)
+    my_cast_rays()
+    -- fpsGraph.updateFPS(graph, dt)
     local move = handle_input()
     if move.no_move then
         return
@@ -377,8 +414,6 @@ function love.update(dt)
         -- cast_rays()
         my_cast_rays()
     end
-
-    fpsGraph.updateFPS(graph, dt)
 end
 
 function draw_grid()
@@ -520,6 +555,6 @@ function love.draw()
     --     draw_walls()
     -- end
 
-    love.graphics.setColor(255 / 255, 255 / 255, 0)
-    fpsGraph.drawGraphs({graph})
+    -- love.graphics.setColor(255 / 255, 255 / 255, 0)
+    -- fpsGraph.drawGraphs({graph})
 end
