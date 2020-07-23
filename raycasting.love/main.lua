@@ -164,8 +164,10 @@ function upper_right_cast_vals(theta)
     local tan_theta = math.tan(theta)
     local x_step = (-1 * (grid_size) / tan_theta)
     local y_step = ((grid_size - dx) * tan_theta)
-    local tile_step_x = 1 * grid_size
-    local tile_step_y = -1 * grid_size
+    local quad_x = 1
+    local quad_y = -1
+    local tile_step_x = quad_x * grid_size
+    local tile_step_y = quad_y * grid_size
     local x_intercept = x + dx + (-1 * dy / tan_theta)
     local y_intercept = y + dy + ((grid_size - dx) * tan_theta)
     return {
@@ -175,6 +177,8 @@ function upper_right_cast_vals(theta)
         dy = dy,
         theta = theta,
         tan_theta = tan_theta,
+        quad_x = quad_x,
+        quad_y = quad_y,
         tile_step_x = tile_step_x,
         tile_step_y = tile_step_y,
         x_step = x_step,
@@ -195,8 +199,10 @@ function bottom_right_cast_vals(theta)
     local tan_theta = math.tan(theta)
     local x_step = ((grid_size) / tan_theta)
     local y_step = ((grid_size - dx) * tan_theta)
-    local tile_step_x = 1 * grid_size
-    local tile_step_y = 1 * grid_size
+    local quad_x = 1
+    local quad_y = 1
+    local tile_step_x = quad_x * grid_size
+    local tile_step_y = quad_y * grid_size
     local x_intercept = x + dx + (dy / tan_theta)
     local y_intercept = y + dy + ((grid_size - dx) * tan_theta)
     return {
@@ -208,6 +214,8 @@ function bottom_right_cast_vals(theta)
         tan_theta = tan_theta,
         x_step = x_step,
         y_step = y_step,
+        quad_x = quad_x,
+        quad_y = quad_y,
         tile_step_x = tile_step_x,
         tile_step_y = tile_step_y,
         x_intercept = x_intercept,
@@ -226,8 +234,10 @@ function upper_left_cast_vals(theta)
     local tan_theta = math.tan(theta)
     local x_step = (-1 * grid_size / tan_theta)
     local y_step = (-1 * (grid_size + dx) * tan_theta)
-    local tile_step_x = -1 * grid_size
-    local tile_step_y = -1 * grid_size
+    local quad_x = -1
+    local quad_y = -1
+    local tile_step_x = quad_x * grid_size
+    local tile_step_y = quad_y * grid_size
     local x_intercept = x + dx + (-1 * dy / tan_theta)
     local y_intercept = y + dy + (-1 * dx * tan_theta)
     return {
@@ -237,6 +247,8 @@ function upper_left_cast_vals(theta)
         dy = dy,
         theta = theta,
         tan_theta = tan_theta,
+        quad_x = quad_x,
+        quad_y = quad_y,
         tile_step_x = tile_step_x,
         tile_step_y = tile_step_y,
         x_step = x_step,
@@ -257,8 +269,10 @@ function bottom_left_cast_vals(theta)
     local tan_theta = math.tan(theta)
     local x_step = (grid_size) / tan_theta
     local y_step = (-1 * (grid_size + dx) * tan_theta)
-    local tile_step_x = -1 * grid_size
-    local tile_step_y = 1 * grid_size
+    local quad_x = -1
+    local quad_y = 1
+    local tile_step_x = quad_x * grid_size
+    local tile_step_y = quad_y * grid_size
     local x_intercept = x + dx + ((grid_size - dy) / tan_theta)
     local y_intercept = y + dy + (-1 * dx * tan_theta)
     return {
@@ -268,6 +282,8 @@ function bottom_left_cast_vals(theta)
         dy = dy,
         theta = theta,
         tan_theta = tan_theta,
+        quad_x = quad_x,
+        quad_y = quad_y,
         tile_step_x = tile_step_x,
         tile_step_y = tile_step_y,
         x_step = x_step,
@@ -284,61 +300,72 @@ function cast_vals_for_angle(theta)
     local x = math.cos(theta) * radius
     local y = math.sin(theta) * radius
     if x > 0 and y < 0 then
-        print("Upper Right")
         return upper_right_cast_vals(theta)
     end
 
     if x < 0 and y < 0 then
-        print("Upper Left")
         return upper_left_cast_vals(theta)
     end
 
     if x < 0 and y > 0 then
-        print("Bottom Left")
         return bottom_left_cast_vals(theta)
     end
     if x > 0 and y > 0 then
-        print("Bottom Right")
         return bottom_right_cast_vals(theta)
     end
 end
 
 function my_cast_rays()
     for i = 1, 1 do
-        -- local cast_vals = upper_right_cast_vals(2 * math.pi - (math.pi / 4))
-        -- local cast_vals = bottom_right_cast_vals(2 * math.pi - (7 * math.pi / 4))
-        -- local cast_vals = upper_left_cast_vals(2 * math.pi - (3 * math.pi / 4))
-        -- local cast_vals = bottom_left_cast_vals(2 * math.pi - (5 * math.pi / 4))
-        -- local cast_vals = cast_vals_for_angle(angle_for_ray(i))
         local cast_vals = cast_vals_for_angle(angle)
         if cast_vals == nil then
             return
         end
-        print("y_step", cast_vals.y_step)
-        print("tan(theta)", cast_vals.tan_theta)
-        debug_info.ray.x = cast_vals.v.x
-        debug_info.ray.y = cast_vals.v.y
+
+        local i_h = {x = cast_vals.h.x, y = cast_vals.h.y}
+        local cell = grid_cell_for_point(i_h.x + cast_vals.quad_x, i_h.y + cast_vals.quad_y)
+        while grid_data[cell.y + 1][cell.x + 1] == 0 do
+            i_h.x = i_h.x + cast_vals.x_step
+            i_h.y = i_h.y + cast_vals.tile_step_y
+            cell = grid_cell_for_point(i_h.x + cast_vals.quad_x, i_h.y + cast_vals.quad_y)
+        end
+
+        local i_v = {x = cast_vals.v.x, y = cast_vals.v.y}
+        cell = grid_cell_for_point(i_v.x + cast_vals.quad_x, i_v.y + cast_vals.quad_y)
+        while grid_data[cell.y + 1][cell.x + 1] == 0 do
+            i_v.x = i_v.x + cast_vals.tile_step_x
+            i_v.y = i_v.y + cast_vals.y_step
+            cell = grid_cell_for_point(i_v.x + cast_vals.quad_x, i_v.y + cast_vals.quad_y)
+        end
+
+        local h_dist = grid_distance(player, i_h)
+        local v_dist = grid_distance(player, i_v)
+
+        if h_dist <= v_dist then
+            debug_info.ray.x = i_h.x
+            debug_info.ray.y = i_h.y
+        else
+            debug_info.ray.x = i_v.x
+            debug_info.ray.y = i_v.y
+        end
         debug_info.ray_angle.x = player.x + math.cos(cast_vals.theta) * 500
         debug_info.ray_angle.y = player.y + math.sin(cast_vals.theta) * 500
 
-        local i_h = {x = cast_vals.h.x, y = cast_vals.h.y}
-        local i_v = {x = cast_vals.v.x, y = cast_vals.v.y}
+        -- for j = 1, 3 do
+        --     debug_info.horizontal_intercepts[i + (j - 1)] = {
+        --         x = i_h.x,
+        --         y = i_h.y
+        --     }
+        --     i_h.x = i_h.x + cast_vals.x_step
+        --     i_h.y = i_h.y + cast_vals.tile_step_y
 
-        for j = 1, 3 do
-            debug_info.horizontal_intercepts[i + (j - 1)] = {
-                x = i_h.x,
-                y = i_h.y
-            }
-            i_h.x = i_h.x + cast_vals.x_step
-            i_h.y = i_h.y + cast_vals.tile_step_y
-
-            debug_info.vertical_intercepts[i + (j - 1)] = {
-                x = i_v.x,
-                y = i_v.y
-            }
-            i_v.x = i_v.x + cast_vals.tile_step_x
-            i_v.y = i_v.y + cast_vals.y_step
-        end
+        --     debug_info.vertical_intercepts[i + (j - 1)] = {
+        --         x = i_v.x,
+        --         y = i_v.y
+        --     }
+        --     i_v.x = i_v.x + cast_vals.tile_step_x
+        --     i_v.y = i_v.y + cast_vals.y_step
+        -- end
     end
 end
 
