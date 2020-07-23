@@ -4,7 +4,7 @@ function love.load()
     height = 768
     col_width = 1
 
-    angle_step = math.pi / 64
+    angle_step = math.pi / 72
     fov = math.pi / 4
     grid_cols = 20
     grid_rows = 15
@@ -21,8 +21,10 @@ function love.load()
         },
         speed = 1
     }
-    -- angle = (2 * math.pi - math.pi / 8)
-    angle = (2 * math.pi - math.pi / 8 - (math.pi * (3 / 2)))
+    angle = 0.01
+    -- angle = -5.7059533002815
+    -- player.x = 503.54350747187
+    -- player.y = 197.27060188703
     rays = {}
     show_map = true
     ray_count = width / col_width
@@ -163,7 +165,7 @@ function upper_right_cast_vals(theta)
     local dy = math.floor(player.y - y)
     local tan_theta = math.tan(theta)
     local x_step = (-1 * (grid_size) / tan_theta)
-    local y_step = ((grid_size - dx) * tan_theta)
+    local y_step = ((grid_size) * tan_theta)
     local quad_x = 1
     local quad_y = -1
     local tile_step_x = quad_x * grid_size
@@ -198,12 +200,12 @@ function bottom_right_cast_vals(theta)
     local dy = math.floor(player.y - y)
     local tan_theta = math.tan(theta)
     local x_step = ((grid_size) / tan_theta)
-    local y_step = ((grid_size - dx) * tan_theta)
+    local y_step = ((grid_size) * tan_theta)
     local quad_x = 1
     local quad_y = 1
     local tile_step_x = quad_x * grid_size
     local tile_step_y = quad_y * grid_size
-    local x_intercept = x + dx + (dy / tan_theta)
+    local x_intercept = x + dx + ((grid_size - dy) / tan_theta)
     local y_intercept = y + dy + ((grid_size - dx) * tan_theta)
     return {
         x = x,
@@ -233,7 +235,7 @@ function upper_left_cast_vals(theta)
     local dy = math.floor(player.y - y)
     local tan_theta = math.tan(theta)
     local x_step = (-1 * grid_size / tan_theta)
-    local y_step = (-1 * (grid_size + dx) * tan_theta)
+    local y_step = (-1 * (grid_size) * tan_theta)
     local quad_x = -1
     local quad_y = -1
     local tile_step_x = quad_x * grid_size
@@ -268,7 +270,7 @@ function bottom_left_cast_vals(theta)
     local dy = math.floor(player.y - y)
     local tan_theta = math.tan(theta)
     local x_step = (grid_size) / tan_theta
-    local y_step = (-1 * (grid_size + dx) * tan_theta)
+    local y_step = (-1 * (grid_size) * tan_theta)
     local quad_x = -1
     local quad_y = 1
     local tile_step_x = quad_x * grid_size
@@ -351,21 +353,21 @@ function my_cast_rays()
         debug_info.ray_angle.x = player.x + math.cos(cast_vals.theta) * 500
         debug_info.ray_angle.y = player.y + math.sin(cast_vals.theta) * 500
 
-        -- for j = 1, 3 do
-        --     debug_info.horizontal_intercepts[i + (j - 1)] = {
-        --         x = i_h.x,
-        --         y = i_h.y
-        --     }
-        --     i_h.x = i_h.x + cast_vals.x_step
-        --     i_h.y = i_h.y + cast_vals.tile_step_y
+        for j = 1, 1 do
+            debug_info.horizontal_intercepts[i + (j - 1)] = {
+                x = i_h.x,
+                y = i_h.y
+            }
+            i_h.x = i_h.x + cast_vals.x_step
+            i_h.y = i_h.y + cast_vals.tile_step_y
 
-        --     debug_info.vertical_intercepts[i + (j - 1)] = {
-        --         x = i_v.x,
-        --         y = i_v.y
-        --     }
-        --     i_v.x = i_v.x + cast_vals.tile_step_x
-        --     i_v.y = i_v.y + cast_vals.y_step
-        -- end
+            debug_info.vertical_intercepts[i + (j - 1)] = {
+                x = i_v.x,
+                y = i_v.y
+            }
+            i_v.x = i_v.x + cast_vals.tile_step_x
+            i_v.y = i_v.y + cast_vals.y_step
+        end
     end
 end
 
@@ -401,7 +403,7 @@ function move_cell(move)
 end
 
 function love.update(dt)
-    angle = angle - (math.pi / 2400)
+    -- angle = angle - (math.pi / 2400)
     my_cast_rays()
     -- fpsGraph.updateFPS(graph, dt)
     local move = handle_input()
@@ -427,14 +429,8 @@ function love.update(dt)
 
     if move.turn_left then
         angle = angle - angle_step
-        if angle < 0 then
-            angle = angle - 2 * math.pi
-        end
     elseif move.turn_right then
         angle = angle + angle_step
-        if angle > 2 * math.pi then
-            angle = angle - 2 * math.pi
-        end
     end
 
     if should_move or move.turn_left or move.turn_right then
