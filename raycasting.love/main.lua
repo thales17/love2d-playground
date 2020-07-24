@@ -1,4 +1,3 @@
-fpsGraph = require "../lib/FPSGraph/FPSGraph"
 function love.load()
     width = 1024
     height = 768
@@ -22,12 +21,9 @@ function love.load()
         speed = 1
     }
     angle = 0.01
-    -- angle = -5.7059533002815
-    -- player.x = 503.54350747187
-    -- player.y = 197.27060188703
     rays = {}
     show_map = true
-    ray_count = width / col_width
+    ray_count = (width / col_width)
 
     grid_data = {
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -46,16 +42,8 @@ function love.load()
         {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
     }
-    debug_info = {
-        ray = {x = 0, y = 0},
-        ray_angle = {x = 0, y = 0},
-        horizontal_intercepts = {},
-        vertical_intercepts = {}
-    }
     -- cast_rays()
     my_cast_rays()
-
-    graph = fpsGraph.createGraph()
 end
 
 function clamp(n, min, max)
@@ -144,13 +132,13 @@ function cast_rays()
         local local_step = 0.0
         local max = {x = 0, y = 0}
         local local_angle = angle_for_ray(i - 1)
-        max.x = player.x + math.cos(local_angle) * width
-        max.y = player.y + math.sin(local_angle) * width
+        max.x = math.cos(local_angle) * width
+        max.y = math.sin(local_angle) * width
         rays[i] = {x = player.x, y = player.y}
         local cell = grid_cell_for_point(rays[i].x, rays[i].y)
         while grid_data[cell.y + 1][cell.x + 1] == 0 do
-            rays[i].x = player.x + ((max.x - player.x) * local_step)
-            rays[i].y = player.y + ((max.y - player.y) * local_step)
+            rays[i].x = player.x + (max.x * local_step)
+            rays[i].y = player.y + (max.y * local_step)
             local_step = local_step + cast_step
             cell = grid_cell_for_point(rays[i].x, rays[i].y)
         end
@@ -317,9 +305,27 @@ function cast_vals_for_angle(theta)
     end
 end
 
+function backtrack_ray(x, y, angle)
+    local dist = grid_distance(player, {x = x, y = y})
+
+    local max_backtracks = grid_size
+    local backtracks = 0
+    local cell = grid_cell_for_point(x, y)
+    while grid_data[cell.y + 1][cell.x + 1] ~= 0 and backtracks < max_backtracks do
+        dist = dist - 1
+        x = math.cos(angle) * dist + player.x
+        y = math.sin(angle) * dist + player.y
+        backtracks = backtracks + 1
+        cell = grid_cell_for_point(x, y)
+    end
+
+    return {x = x, y = y}
+end
+
 function my_cast_rays()
-    for i = 1, 1 do
-        local cast_vals = cast_vals_for_angle(angle)
+    for i = 1, ray_count do
+        local local_angle = angle_for_ray(i - 1)
+        local cast_vals = cast_vals_for_angle(local_angle)
         if cast_vals == nil then
             return
         end
@@ -344,29 +350,11 @@ function my_cast_rays()
         local v_dist = grid_distance(player, i_v)
 
         if h_dist <= v_dist then
-            debug_info.ray.x = i_h.x
-            debug_info.ray.y = i_h.y
+            -- rays[i] = backtrack_ray(i_h.x, i_h.y, local_angle)
+            rays[i] = {x = math.floor(i_h.x), y = math.floor(i_h.y)}
         else
-            debug_info.ray.x = i_v.x
-            debug_info.ray.y = i_v.y
-        end
-        debug_info.ray_angle.x = player.x + math.cos(cast_vals.theta) * 500
-        debug_info.ray_angle.y = player.y + math.sin(cast_vals.theta) * 500
-
-        for j = 1, 1 do
-            debug_info.horizontal_intercepts[i + (j - 1)] = {
-                x = i_h.x,
-                y = i_h.y
-            }
-            i_h.x = i_h.x + cast_vals.x_step
-            i_h.y = i_h.y + cast_vals.tile_step_y
-
-            debug_info.vertical_intercepts[i + (j - 1)] = {
-                x = i_v.x,
-                y = i_v.y
-            }
-            i_v.x = i_v.x + cast_vals.tile_step_x
-            i_v.y = i_v.y + cast_vals.y_step
+            -- rays[i] = backtrack_ray(i_v.x, i_v.y, local_angle)
+            rays[i] = {x = math.floor(i_v.x), y = math.floor(i_v.y)}
         end
     end
 end
@@ -403,9 +391,6 @@ function move_cell(move)
 end
 
 function love.update(dt)
-    -- angle = angle - (math.pi / 2400)
-    my_cast_rays()
-    -- fpsGraph.updateFPS(graph, dt)
     local move = handle_input()
     if move.no_move then
         return
@@ -515,7 +500,7 @@ function draw_vertical_center_line(x, h)
 end
 
 function draw_walls()
-    local max_height = height * 70
+    local max_height = height * 50
     local max_blue = 255
     for i = 1, ray_count do
         local delta_x = rays[i].x - player.x
@@ -567,17 +552,13 @@ function draw_debug()
 end
 
 function love.draw()
-    -- if show_map then
-    draw_grid()
-    draw_player()
-    draw_debug()
-    -- draw_rays()
-    --     draw_viewport()
-    -- else
-    --     draw_horizon()
-    --     draw_walls()
-    -- end
-
-    -- love.graphics.setColor(255 / 255, 255 / 255, 0)
-    -- fpsGraph.drawGraphs({graph})
+    if show_map then
+        draw_grid()
+        draw_player()
+        draw_rays()
+        draw_viewport()
+    else
+        draw_horizon()
+        draw_walls()
+    end
 end
