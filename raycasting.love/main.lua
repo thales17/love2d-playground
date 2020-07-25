@@ -1,10 +1,10 @@
 function love.load()
     width = 1024
     height = 768
-    col_width = 1
+    col_width = 2
 
-    angle_step = math.pi / 72
-    fov = math.pi / 4
+    fov = math.pi / 2
+
     grid_cols = 20
     grid_rows = 15
     grid_size = math.floor(width / grid_cols)
@@ -24,6 +24,7 @@ function love.load()
     rays = {}
     show_map = true
     ray_count = (width / col_width)
+    angle_step = fov / ray_count
 
     grid_data = {
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -120,10 +121,7 @@ end
 
 function angle_for_ray(i)
     local start_angle = angle - (fov / 2)
-    local end_angle = angle + (fov / 2)
-    local ray_angle_step = (end_angle - start_angle) / ray_count
-
-    return start_angle + (ray_angle_step * i)
+    return start_angle + (angle_step * i)
 end
 
 function cast_rays()
@@ -413,9 +411,9 @@ function love.update(dt)
     end
 
     if move.turn_left then
-        angle = angle - angle_step
+        angle = angle - (math.pi / 180)
     elseif move.turn_right then
-        angle = angle + angle_step
+        angle = angle + (math.pi / 180)
     end
 
     if should_move or move.turn_left or move.turn_right then
